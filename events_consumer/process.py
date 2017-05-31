@@ -1,4 +1,4 @@
-import uuid
+from uuid import uuid4
 
 
 def process_message(conn, message):
@@ -22,26 +22,35 @@ def save_message(cursor, message):
     subject_type_set = { role.subject_type for role in message.roles }
     subject_type_map = { subject_type: find_or_create_type(cursor, subject_type, 'subject_types') for subject_type in subject_type_set }
 
-    cursor.execute('''INSERT INTO events
-            (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
-            VALUES ('aker', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-            (str(uuid.uuid4()), event_type_id, message.timestamp, message.user_identifier))
-    event_id = cursor.lastrowid
+    event_id = create_event(cursor, uuid4(), event_type_id, message.timestamp, message.user_identifier)
 
     for role in message.roles:
         subject_type_id = subject_type_map[role.subject_type]
         subject_id = find_or_create_subject(cursor, role.subject_uuid, role.subject_friendly_name, subject_type_id)
         role_type_id = role_type_map[role.role_type]
-        cursor.execute('''INSERT INTO roles (event_id, subject_id, role_type_id, created_at, updated_at)
+        create_role(cursor, event_id, subject_id, role_type_id)
+
+    create_metadata(cursor, event_id, message.metadata)
+
+def create_event(cursor, uuid, event_type_id, timestamp, user_identifier):
+    cursor.execute('''INSERT INTO events
+            (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
+            VALUES ('aker', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+            (str(uuid), event_type_id, timestamp, user_identifier))
+    return cursor.lastrowid
+
+def create_role(cursor, event_id, subject_id, role_type_id):
+    cursor.execute('''INSERT INTO roles (event_id, subject_id, role_type_id, created_at, updated_at)
                 VALUES (?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
                 (event_id, subject_id, role_type_id))
+    return cursor.lastrowid
 
-    for k,v in message.metadata.iteritems():
+def create_metadata(cursor, event_id, metadata):
+    for k,v in metadata.iteritems():
         cursor.execute('''INSERT INTO metadata
                 (event_id, data_key, data_value, created_at, updated_at)
                 VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
                 (event_id, k, v))
-
 
 def find_or_create_subject(cursor, uuid, name, subject_type_id):
     cursor.execute('SELECT id FROM subjects WHERE uuid=?', (uuid,))
