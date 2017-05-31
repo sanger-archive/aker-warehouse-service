@@ -1,13 +1,13 @@
 import uuid
 
 
-def process_message(message, conn):
+def process_message(conn, message):
     conn.isolation_level = None
     cursor = conn.cursor()
     cursor.execute('BEGIN')
     finished = False
     try:
-        save_message(message, cursor)
+        save_message(cursor, message)
         cursor.execute('COMMIT')
         finished = True
     finally:
@@ -15,7 +15,7 @@ def process_message(message, conn):
             cursor.execute('ROLLBACK')
 
 
-def save_message(message, cursor):
+def save_message(cursor, message):
     event_type_id = find_or_create_type(cursor, message.event_type, 'event_types')
     role_type_set = { role.role_type for role in message.roles }
     role_type_map = { role_type: find_or_create_type(cursor, role_type, 'role_types') for role_type in role_type_set }

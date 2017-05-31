@@ -13,11 +13,12 @@ conn = setup_database(env)
 
 def on_message(channel, method_frame, header_frame, body):
     try:
+        print method_frame.routing_key
         print method_frame.delivery_tag
         print body
         message = Message.from_json(body)
         print message
-        process_message(message, conn)
+        process_message(conn, message)
         print
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
     except Exception:
