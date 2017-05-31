@@ -12,9 +12,9 @@ class MessageTests(unittest.TestCase):
         cls.message = Message(
             event_type = "aker.events.work_order.submitted",
             timestamp = 1496159601659,
+            user_identifier = 'dr6@sanger.ac.uk',
             roles = [
-                    Message.Role('work_order', 'work_order', 'Work Order 11'),
-                    Message.Role('user', 'user', 'dr6@sanger.ac.uk'),
+                    Message.Role('work_order', 'work_order', 'Work Order 11', 'work_order_uuid_...'),
                     Message.Role('project', 'project', 'Viruses', 'project_uuid_...'),
                     Message.Role('product', 'product', 'Ham sandwich', 'product_uuid_...'),
             ],
@@ -34,9 +34,9 @@ class MessageTests(unittest.TestCase):
     def test_init(self):
         self.assertEqual(MessageTests.message.event_type, "aker.events.work_order.submitted")
         self.assertEqual(MessageTests.message.timestamp, 1496159601659)
+        self.assertEqual(MessageTests.message.user_identifier, 'dr6@sanger.ac.uk')
         self.assertEqual(MessageTests.message.roles, [
-                    Message.Role('work_order', 'work_order', 'Work Order 11'),
-                    Message.Role('user', 'user', 'dr6@sanger.ac.uk'),
+                    Message.Role('work_order', 'work_order', 'Work Order 11', 'work_order_uuid_...'),
                     Message.Role('project', 'project', 'Viruses', 'project_uuid_...'),
                     Message.Role('product', 'product', 'Ham sandwich', 'product_uuid_...'),
             ])
@@ -53,28 +53,25 @@ class MessageTests(unittest.TestCase):
             {
                "timestamp":1496159601659,
                "event_type":"aker.events.work_order.submitted",
+               "user_identifier":"dr6@sanger.ac.uk",
                "roles":[
                   {
                      "subject_type":"work_order",
                      "subject_friendly_name":"Work Order 11",
-                     "role_type":"work_order"
-                  },
-                  {
-                     "subject_type":"user",
-                     "subject_friendly_name":"dr6@sanger.ac.uk",
-                     "role_type":"user"
+                     "role_type":"work_order",
+                     "subject_uuid":"work_order_uuid_..."
                   },
                   {
                      "subject_type":"project",
                      "subject_friendly_name":"Viruses",
                      "role_type":"project",
-                     "uuid":"project_uuid_..."
+                     "subject_uuid":"project_uuid_..."
                   },
                   {
                      "subject_type":"product",
                      "subject_friendly_name":"Ham sandwich",
                      "role_type":"product",
-                     "uuid":"product_uuid_..."
+                     "subject_uuid":"product_uuid_..."
                   }
                ],
                "metadata":{
@@ -87,15 +84,18 @@ class MessageTests(unittest.TestCase):
             }'''
 
         message = Message.from_json(message_as_json)
-        self.assertEqual(MessageTests.message.event_type, "aker.events.work_order.submitted")
-        self.assertEqual(MessageTests.message.timestamp, 1496159601659)
-        self.assertEqual(MessageTests.message.roles, [
-                    Message.Role('work_order', 'work_order', 'Work Order 11'),
-                    Message.Role('user', 'user', 'dr6@sanger.ac.uk'),
+        self.assertEqual(message.event_type, "aker.events.work_order.submitted")
+        self.assertEqual(message.timestamp, 1496159601659)
+        self.assertEqual(message.user_identifier, 'dr6@sanger.ac.uk')
+
+        expected_roles = (
+                    Message.Role('work_order', 'work_order', 'Work Order 11', 'work_order_uuid_...'),
                     Message.Role('project', 'project', 'Viruses', 'project_uuid_...'),
                     Message.Role('product', 'product', 'Ham sandwich', 'product_uuid_...'),
-            ])
-        self.assertEqual(MessageTests.message.metadata, {
+            )
+
+        self.assertEqual(message.roles, expected_roles)
+        self.assertEqual(message.metadata, {
                 'comment': 'Do my work',
                 'desired_completion_date': 1496159601659,
                 'zipkin_trace_id': 'a_uuid_...',

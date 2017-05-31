@@ -7,20 +7,21 @@ from collections import namedtuple
 
 class Message(object):
 
-    Role = namedtuple('Role', 'role_type subject_type subject_friendly_name uuid')
-    Role.__new__.__defaults__ = (None,)
+    Role = namedtuple('Role', 'role_type subject_type subject_friendly_name subject_uuid')
 
     """Class representing a message sent from an Aker application or service"""
-    def __init__(self, event_type, timestamp, roles, metadata):
+    def __init__(self, event_type, timestamp, user_identifier, roles, metadata):
         """
             Initializer for the Message class.
             :param event_type name of the type of the event
             :param timestamp time of event
+            :param user_identifier the user performing this event
             :param roles links to entities involved in the event
             :param metadata metadata of event
         """
         self._event_type = event_type
         self._timestamp = timestamp
+        self._user_identifier = user_identifier
         self._roles = roles
         self._metadata = metadata
 
@@ -44,6 +45,11 @@ class Message(object):
         """Getter for _metadata property"""
         return self._metadata
 
+    @property
+    def user_identifier(self):
+        """Getter for _user_identifier property"""
+        return self._user_identifier
+
     @classmethod
     def from_json(cls, message_as_json):
         """
@@ -60,6 +66,6 @@ class Message(object):
         return cls(**data)
 
     def __repr__(self):
-        return 'Message(event_type={!r}, timestamp={!r}, roles={!r}, metadata={!r})'.format(
-            self.event_type, self.timestamp, self.roles, self.metadata)
+        return 'Message(event_type={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
+            self.event_type, self.timestamp, self.user_identifier, self.roles, self.metadata)
 
