@@ -93,13 +93,11 @@ class ProcessTests(unittest.TestCase):
     @parameterized.expand(['event_types', 'role_types', 'subject_types'])
     def test_find_or_create_type(self, table_name):
         type_id = find_or_create_type(self.cursor, 'bubbles', table_name)
-        self.cursor.execute('SELECT name FROM '+table_name+' WHERE id=?', (type_id, ))
+        self.cursor.execute('SELECT name FROM %s WHERE id=?'%table_name, (type_id, ))
         result = self.cursor.fetchone()
         self.assertIsNotNone(result)
         self.assertEqual(result[0], 'bubbles')
 
+        # Should get the same id back the second time
         same_type_id = find_or_create_type(self.cursor, 'bubbles', table_name)
         self.assertEqual(type_id, same_type_id)
-
-
-
