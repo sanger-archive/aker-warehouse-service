@@ -28,6 +28,7 @@ def save_message(cursor, message):
         create_role(cursor, event_id, subject_id, role_type_id)
 
     create_metadata(cursor, event_id, message.metadata)
+    return event_id
 
 def create_event(cursor, lims_id, uuid, event_type_id, timestamp, user_identifier):
     cursor.execute(
