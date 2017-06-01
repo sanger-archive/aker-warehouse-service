@@ -46,11 +46,16 @@ def create_role(cursor, event_id, subject_id, role_type_id):
     return cursor.lastrowid
 
 def create_metadata(cursor, event_id, metadata):
-    for k,v in metadata.iteritems():
-        cursor.execute('''INSERT INTO metadata
-                (event_id, data_key, data_value, created_at, updated_at)
-                VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-                (event_id, k, v))
+    for key,values in metadata.iteritems():
+        if not isinstance(values, (list, tuple)):
+            values = [values]
+        for v in values:
+            cursor.execute(
+                '''INSERT INTO metadata
+                   (event_id, data_key, data_value, created_at, updated_at)
+                   VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+                (event_id, key, v)
+            )
 
 def find_or_create_subject(cursor, uuid, name, subject_type_id):
     cursor.execute('SELECT id FROM subjects WHERE uuid=?', (uuid,))
@@ -68,6 +73,7 @@ def find_or_create_type(cursor, type_name, table):
     result = cursor.fetchone()
     if result:
         return result[0]
-    cursor.execute('INSERT INTO '+table+' (name, created_at, updated_at) VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+    cursor.execute('INSERT INTO '+table+' (name, created_at, updated_at) '
+            'VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
             (type_name,))
     return cursor.lastrowid
