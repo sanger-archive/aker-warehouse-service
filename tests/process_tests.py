@@ -1,6 +1,7 @@
 from nose.tools import *
 from parameterized import parameterized
 import unittest
+import mock
 import json
 from itertools import izip
 from uuid import uuid4
@@ -179,3 +180,36 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(results[1], ('colour', 'green'))
         self.assertEqual(results[2], ('colour', 'red'))
         self.assertEqual(results[3], ('comment', 'Do my work'))
+
+    @parameterized.expand(['COMMIT', 'ROLLBACK'])
+    def test_process_message(self, transaction_result):
+        message = Message(
+            event_type="invasion",
+            lims_id="banana",
+            uuid=new_uuid(),
+            timestamp=1496159601659,
+            user_identifier='dr6@sanger.ac.uk',
+            roles = [
+                    Message.Role('work_order', 'work_order', 'Work Order 11', new_uuid()),
+                    Message.Role('project', 'project', 'Viruses', new_uuid()),
+                    Message.Role('product', 'product', 'Ham sandwich', new_uuid()),
+            ],
+            metadata = {
+                'comment': 'Do my work',
+                'colour': ['red', 'green', 'blue'],
+            },
+        )
+        mock_conn = mock.MagicMock(name='conn')
+        mock_cursor = mock.MagicMock(name='cursor')
+        mock_conn.cursor.return_value = mock_cursor
+        mock_conn.isolation_level = 'Not none'
+        with mock.patch('events_consumer.process.save_message') as mock_save_message:
+            if transaction_result=='ROLLBACK':
+                mock_save_message.side_effect = ValueError('Something went wrong in the message')
+                with self.assertRaises(ValueError):
+                    process_message(mock_conn, message)
+            else:
+                process_message(mock_conn, message)
+        self.assertEqual(mock_save_message.mock_calls, [mock.call(mock_cursor, message)])
+        self.assertEqual(mock_conn.isolation_level, None)
+        self.assertEqual(mock_cursor.execute.mock_calls, [mock.call('BEGIN'), mock.call(transaction_result)])
