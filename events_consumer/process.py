@@ -1,6 +1,3 @@
-from uuid import uuid4
-
-
 def process_message(conn, message):
     conn.isolation_level = None
     cursor = conn.cursor()
@@ -22,7 +19,7 @@ def save_message(cursor, message):
     subject_type_set = { role.subject_type for role in message.roles }
     subject_type_map = { subject_type: find_or_create_type(cursor, subject_type, 'subject_types') for subject_type in subject_type_set }
 
-    event_id = create_event(cursor, uuid4(), event_type_id, message.timestamp, message.user_identifier)
+    event_id = create_event(cursor, message.uuid, event_type_id, message.timestamp, message.user_identifier)
 
     for role in message.roles:
         subject_type_id = subject_type_map[role.subject_type]
@@ -33,16 +30,20 @@ def save_message(cursor, message):
     create_metadata(cursor, event_id, message.metadata)
 
 def create_event(cursor, uuid, event_type_id, timestamp, user_identifier):
-    cursor.execute('''INSERT INTO events
-            (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
-            VALUES ('aker', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-            (str(uuid), event_type_id, timestamp, user_identifier))
+    cursor.execute(
+        '''INSERT INTO events
+           (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
+           VALUES ('aker', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+        (uuid, event_type_id, timestamp, user_identifier)
+    )
     return cursor.lastrowid
 
 def create_role(cursor, event_id, subject_id, role_type_id):
-    cursor.execute('''INSERT INTO roles (event_id, subject_id, role_type_id, created_at, updated_at)
-                VALUES (?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-                (event_id, subject_id, role_type_id))
+    cursor.execute(
+        '''INSERT INTO roles (event_id, subject_id, role_type_id, created_at, updated_at)
+           VALUES (?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+        (event_id, subject_id, role_type_id)
+    )
     return cursor.lastrowid
 
 def create_metadata(cursor, event_id, metadata):
@@ -57,23 +58,28 @@ def create_metadata(cursor, event_id, metadata):
                 (event_id, key, v)
             )
 
-def find_or_create_subject(cursor, uuid, name, subject_type_id):
+def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
     cursor.execute('SELECT id FROM subjects WHERE uuid=?', (uuid,))
     result = cursor.fetchone()
     if result:
         return result[0]
-    cursor.execute('''INSERT INTO subjects
+    cursor.execute(
+        '''INSERT INTO subjects
             (uuid, friendly_name, subject_type_id, created_at, updated_at)
             VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-            (uuid, name, subject_type_id))
+        (uuid, friendly_name, subject_type_id)
+    )
     return cursor.lastrowid
 
-def find_or_create_type(cursor, type_name, table):
-    cursor.execute('SELECT id FROM '+table+' WHERE name=?', (type_name,))
+def find_or_create_type(cursor, name, table):
+    cursor.execute('SELECT id FROM %s WHERE name=?'%table, (name,))
     result = cursor.fetchone()
     if result:
         return result[0]
-    cursor.execute('INSERT INTO '+table+' (name, created_at, updated_at) '
-            'VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
-            (type_name,))
+    cursor.execute(
+        '''INSERT INTO %s (name, created_at, updated_at) VALUES
+           (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'''%table,
+        (name,)
+    )
     return cursor.lastrowid
+

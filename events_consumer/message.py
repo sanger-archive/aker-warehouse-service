@@ -10,16 +10,18 @@ class Message(object):
     Role = namedtuple('Role', 'role_type subject_type subject_friendly_name subject_uuid')
 
     """Class representing a message sent from an Aker application or service"""
-    def __init__(self, event_type, timestamp, user_identifier, roles, metadata):
+    def __init__(self, event_type, uuid, timestamp, user_identifier, roles, metadata):
         """
             Initializer for the Message class.
             :param event_type name of the type of the event
+            :param uuid the uuid for the event
             :param timestamp time of event
             :param user_identifier the user performing this event
             :param roles links to entities involved in the event
             :param metadata metadata of event
         """
         self._event_type = event_type
+        self._uuid = uuid
         self._timestamp = timestamp
         self._user_identifier = user_identifier
         self._roles = roles
@@ -27,27 +29,32 @@ class Message(object):
 
     @property
     def event_type(self):
-        """Getter for _event_type property"""
+        """The name of the event type of the event"""
         return self._event_type
 
     @property
+    def uuid(self):
+        """The uuid for the event"""
+        return self._uuid
+
+    @property
     def timestamp(self):
-        """Getter for _timestamp property"""
+        """The time the event happened"""
         return self._timestamp
 
     @property
     def roles(self):
-        """Getter for _roles property"""
+        """The roles linking this event to subjects"""
         return self._roles
 
     @property
     def metadata(self):
-        """Getter for _metadata property"""
+        """The metadata linked to this event"""
         return self._metadata
 
     @property
     def user_identifier(self):
-        """Getter for _user_identifier property"""
+        """The user (email address) responsible for this event"""
         return self._user_identifier
 
     @classmethod
@@ -66,6 +73,6 @@ class Message(object):
         return cls(**data)
 
     def __repr__(self):
-        return 'Message(event_type={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
-            self.event_type, self.timestamp, self.user_identifier, self.roles, self.metadata)
+        return 'Message(event_type={!r}, uuid={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
+            self.event_type, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata)
 
