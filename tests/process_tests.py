@@ -38,7 +38,7 @@ class ProcessTests(unittest.TestCase):
     def test_create_event(self):
         uuid = new_uuid()
         user = 'dr6@sanger.ac.uk'
-        event_id = create_event(self.cursor, uuid, ProcessTests.event_type_id, ProcessTests.some_timestamp, user)
+        event_id = create_event(self.cursor, 'aker', uuid, ProcessTests.event_type_id, ProcessTests.some_timestamp, user)
         self.cursor.execute('''SELECT lims_id, uuid, event_type_id, occurred_at, user_identifier
               FROM events WHERE id=?''', (event_id,))
         result = self.cursor.fetchone()
@@ -50,7 +50,7 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(result[4], user)
 
     def test_create_role(self):
-        event_id = create_event(self.cursor, new_uuid(), ProcessTests.event_type_id, ProcessTests.some_timestamp, 'dr6@sanger.ac.uk')
+        event_id = create_event(self.cursor, 'aker', new_uuid(), ProcessTests.event_type_id, ProcessTests.some_timestamp, 'dr6@sanger.ac.uk')
         subject_id = find_or_create_subject(self.cursor, str(uuid4()), 'Timmy', ProcessTests.subject_type_id)
         role_id = create_role(self.cursor, event_id, subject_id, ProcessTests.role_type_id)
         self.cursor.execute('SELECT event_id, subject_id, role_type_id FROM roles WHERE id=?', (role_id,))
@@ -61,20 +61,19 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(result[2], ProcessTests.role_type_id)
 
     def test_create_metadata(self):
-        event_id = create_event(self.cursor, new_uuid(), ProcessTests.event_type_id, ProcessTests.some_timestamp, 'dr6@sanger.ac.uk')
-        metadata = { "weapon": "banana gun", "mood": "angry" }
+        event_id = create_event(self.cursor, 'aker', new_uuid(), ProcessTests.event_type_id, ProcessTests.some_timestamp, 'dr6@sanger.ac.uk')
+        metadata = { "weapon": "banana gun", "mood": ["confused", "angry"] }
+
         create_metadata(self.cursor, event_id, metadata)
+
         self.cursor.execute('SELECT data_key, data_value FROM metadata WHERE event_id=?', (event_id,))
         results = self.cursor.fetchall()
-        self.assertEqual(len(results), 2)
+        self.assertEqual(len(results), 3)
+        results.sort()
 
-        if results[0][0]=='mood':
-            results[0], results[1] = results[1],results[0]
-
-        self.assertEqual(results[0][0], 'weapon')
-        self.assertEqual(results[0][1], 'banana gun')
-        self.assertEqual(results[1][0], 'mood')
-        self.assertEqual(results[1][1], 'angry')
+        self.assertEqual(results[0], ('mood', 'angry'))
+        self.assertEqual(results[1], ('mood', 'confused'))
+        self.assertEqual(results[2], ('weapon', 'banana gun'))
 
     def test_find_or_create_subject(self):
         uuid = new_uuid()

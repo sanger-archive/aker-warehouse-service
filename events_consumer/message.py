@@ -10,10 +10,11 @@ class Message(object):
     Role = namedtuple('Role', 'role_type subject_type subject_friendly_name subject_uuid')
 
     """Class representing a message sent from an Aker application or service"""
-    def __init__(self, event_type, uuid, timestamp, user_identifier, roles, metadata):
+    def __init__(self, event_type, lims_id, uuid, timestamp, user_identifier, roles, metadata):
         """
             Initializer for the Message class.
             :param event_type name of the type of the event
+            :param the LIMS responsible for this event
             :param uuid the uuid for the event
             :param timestamp time of event
             :param user_identifier the user performing this event
@@ -21,6 +22,7 @@ class Message(object):
             :param metadata metadata of event
         """
         self._event_type = event_type
+        self._lims_id = lims_id
         self._uuid = uuid
         self._timestamp = timestamp
         self._user_identifier = user_identifier
@@ -31,6 +33,11 @@ class Message(object):
     def event_type(self):
         """The name of the event type of the event"""
         return self._event_type
+
+    @property
+    def lims_id(self):
+        """The LIMS responsible for this event"""
+        return self._lims_id
 
     @property
     def uuid(self):
@@ -73,6 +80,6 @@ class Message(object):
         return cls(**data)
 
     def __repr__(self):
-        return 'Message(event_type={!r}, uuid={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
-            self.event_type, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata)
+        return 'Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
+            self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata)
 

@@ -19,7 +19,7 @@ def save_message(cursor, message):
     subject_type_set = { role.subject_type for role in message.roles }
     subject_type_map = { subject_type: find_or_create_type(cursor, subject_type, 'subject_types') for subject_type in subject_type_set }
 
-    event_id = create_event(cursor, message.uuid, event_type_id, message.timestamp, message.user_identifier)
+    event_id = create_event(cursor, message.lims_id, message.uuid, event_type_id, message.timestamp, message.user_identifier)
 
     for role in message.roles:
         subject_type_id = subject_type_map[role.subject_type]
@@ -29,12 +29,12 @@ def save_message(cursor, message):
 
     create_metadata(cursor, event_id, message.metadata)
 
-def create_event(cursor, uuid, event_type_id, timestamp, user_identifier):
+def create_event(cursor, lims_id, uuid, event_type_id, timestamp, user_identifier):
     cursor.execute(
         '''INSERT INTO events
            (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
-           VALUES ('aker', ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-        (uuid, event_type_id, timestamp, user_identifier)
+           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+        (lims_id, uuid, event_type_id, timestamp, user_identifier)
     )
     return cursor.lastrowid
 

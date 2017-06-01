@@ -7,6 +7,7 @@ class MessageTests(unittest.TestCase):
     def test_init(self):
         message = Message(
             event_type = "aker.events.work_order.submitted",
+            lims_id = "aker",
             uuid = "690bf1dd-98bb-451c-8277-88a78d53beea",
             timestamp = 1496159601659,
             user_identifier = 'dr6@sanger.ac.uk',
@@ -21,9 +22,11 @@ class MessageTests(unittest.TestCase):
                 'zipkin_trace_id': 'a_uuid_...',
                 'quoted_price': '5102.52',
                 'num_materials': 52,
+                'primary_colours': ['red', 'green', 'blue'],
             },
         )
         self.assertEqual(message.event_type, "aker.events.work_order.submitted")
+        self.assertEqual(message.lims_id, "aker")
         self.assertEqual(message.uuid, "690bf1dd-98bb-451c-8277-88a78d53beea")
         self.assertEqual(message.timestamp, 1496159601659)
         self.assertEqual(message.user_identifier, 'dr6@sanger.ac.uk')
@@ -38,12 +41,14 @@ class MessageTests(unittest.TestCase):
                 'zipkin_trace_id': 'a_uuid_...',
                 'quoted_price': '5102.52',
                 'num_materials': 52,
+                'primary_colours': ['red', 'green', 'blue'],
             })
 
     def test_from_json(self):
         message_as_json = '''
             {
                "event_type":"aker.events.work_order.submitted",
+               "lims_id":"aker",
                "uuid":"690bf1dd-98bb-451c-8277-88a78d53beea",
                "timestamp":1496159601659,
                "user_identifier":"dr6@sanger.ac.uk",
@@ -72,12 +77,14 @@ class MessageTests(unittest.TestCase):
                   "quoted_price":"5102.52",
                   "desired_completion_date":1496159601659,
                   "zipkin_trace_id":"a_uuid_...",
-                  "num_materials":52
+                  "num_materials":52,
+                  "primary_colours":["red", "green", "blue"]
                }
             }'''
 
         message = Message.from_json(message_as_json)
         self.assertEqual(message.event_type, "aker.events.work_order.submitted")
+        self.assertEqual(message.lims_id, "aker")
         self.assertEqual(message.uuid, "690bf1dd-98bb-451c-8277-88a78d53beea")
         self.assertEqual(message.timestamp, 1496159601659)
         self.assertEqual(message.user_identifier, 'dr6@sanger.ac.uk')
@@ -95,4 +102,5 @@ class MessageTests(unittest.TestCase):
                 'zipkin_trace_id': 'a_uuid_...',
                 'quoted_price': '5102.52',
                 'num_materials': 52,
+                'primary_colours': ['red', 'green', 'blue'],
             })
