@@ -1,10 +1,11 @@
-import sqlite3
-
 def setup_database(env='development'):
     if env in ('development', 'test'):
         import sqlite3
         conn = sqlite3.connect(':memory:')
         create_schema(conn)
+    elif env=='staging':
+        import psycopg2
+        conn = psycopg2.connect(TODO('connection details'))
     elif env=='production':
         TODO # prod database
     else:

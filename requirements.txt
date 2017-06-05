@@ -12,3 +12,4 @@ funcsigs==1.0.2
 mock==2.0.0
 pbr==3.0.1
 six==1.10.0
+psycopg2==2.7.1
