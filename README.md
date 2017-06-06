@@ -39,6 +39,7 @@ Database
 ---
 
 You need to connect to a postgres database for this to work.
-The connection details are in a local file called `[environment]_db.txt` (e.g. `development_db.txt`)
+The connection details are in a local file called `[environment]_db.txt` (e.g. `development_db.txt`).
+(It is possible to set up your database so that the details in development_db.txt will just work.)
 
 Load the `schema.sql` file into your database to set up the tables.
