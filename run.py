@@ -7,9 +7,11 @@ import traceback
 import sys
 import os
 import argparse
+from collections import namedtuple
+from contextlib import closing
+from ConfigParser import ConfigParser
 
 from events_consumer import Message, db_connect, process_message
-from contextlib import closing
 
 def on_message(channel, method_frame, header_frame, body):
     try:
@@ -24,6 +26,22 @@ def on_message(channel, method_frame, header_frame, body):
     except Exception:
         traceback.print_exc(file=sys.stderr)
 
+QueueConfig = namedtuple('QueueConfig', 'user password host port virtual_host queue')
+
+def queue_config(env):
+    filename = '%s_queue.txt'%env
+    config = ConfigParser()
+    config.read(filename)
+    values = config.defaults()
+    return QueueConfig(
+        values['user'],
+        values['password'],
+        values['host'],
+        int(values['port']),
+        values['virtual_host'],
+        values['queue'],
+    )
+
 def main():
     global db
 
@@ -32,21 +50,23 @@ def main():
     args = parser.parse_args()
 
     env = args.env or os.getenv('aker_events_consumer_env', 'development')
+    qc = queue_config(env)
     db = db_connect(env)
 
-    credentials = pika.PlainCredentials('guest', 'guest')
-    parameters = pika.ConnectionParameters('localhost', 5672, '/', credentials)
+    try:
+        credentials = pika.PlainCredentials(qc.user, qc.password)
+        parameters = pika.ConnectionParameters(qc.host, qc.port, qc.virtual_host, credentials)
 
-    with closing(pika.BlockingConnection(parameters)) as connection:
-        channel = connection.channel()
-        channel.basic_consume(on_message, 'aker.events')
-        try:
-            print "Listening ..."
-            channel.start_consuming()
-        finally:
-            channel.stop_consuming()
-
-    db.close()
+        with closing(pika.BlockingConnection(parameters)) as connection:
+            channel = connection.channel()
+            channel.basic_consume(on_message, qc.queue)
+            try:
+                print "Listening on %s ..."%qc.queue
+                channel.start_consuming()
+            finally:
+                channel.stop_consuming()
+    finally:
+        db.close()
 
 if __name__=='__main__':
     main()

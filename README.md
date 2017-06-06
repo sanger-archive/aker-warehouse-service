@@ -28,6 +28,8 @@ Once installed, you can run RabbitMQ using the `rabbitmq-server` command. This w
 
 Once running, you will need to set up a topic exchange e.g. aker.events and a queue which binds to it (both of which can be done through the web view).
 
+The queue connection details are in a local file called `[environment]_queue.txt`, e.g. `development_queue.txt`.
+
 Running the Tests
 ---
 
