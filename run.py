@@ -1,9 +1,12 @@
 #!/usr/bin/env python -tt
 
+"""Reads messages off a queue and saves them in an events schema."""
+
 import pika
 import traceback
 import sys
 import os
+import argparse
 
 from events_consumer import Message, db_connect, process_message
 from contextlib import closing
@@ -21,22 +24,29 @@ def on_message(channel, method_frame, header_frame, body):
     except Exception:
         traceback.print_exc(file=sys.stderr)
 
-if len(sys.argv) > 1:
-    env = sys.argv[1]
-else:
-    env = os.getenv('aker_events_consumer_env', 'development')
+def main():
+    global db
 
-db = db_connect(env)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('env', help='environment (e.g. development)', nargs='?', default=None)
+    args = parser.parse_args()
 
-credentials = pika.PlainCredentials('guest', 'guest')
-parameters = pika.ConnectionParameters('localhost', 5672, '/', credentials)
+    env = args.env or os.getenv('aker_events_consumer_env', 'development')
+    db = db_connect(env)
 
-with closing(pika.BlockingConnection(parameters)) as connection:
-    channel = connection.channel()
-    channel.basic_consume(on_message, 'aker.events')
+    credentials = pika.PlainCredentials('guest', 'guest')
+    parameters = pika.ConnectionParameters('localhost', 5672, '/', credentials)
 
-    try:
-        channel.start_consuming()
-    finally:
-        channel.stop_consuming()
+    with closing(pika.BlockingConnection(parameters)) as connection:
+        channel = connection.channel()
+        channel.basic_consume(on_message, 'aker.events')
+        try:
+            print "Listening ..."
+            channel.start_consuming()
+        finally:
+            channel.stop_consuming()
 
+    db.close()
+
+if __name__=='__main__':
+    main()

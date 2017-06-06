@@ -34,3 +34,11 @@ Running the Tests
 The tests can be run using the [nose library](http://nose.readthedocs.io/).
 
 `nosetests`
+
+Database
+---
+
+You need to connect to a postgres database for this to work.
+The connection details are in a local file called `[environment]_db.txt` (e.g. `development_db.txt`)
+
+Load the `schema.sql` file into your database to set up the tables.
