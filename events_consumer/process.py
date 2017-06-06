@@ -1,16 +1,8 @@
-def process_message(conn, message):
-    conn.isolation_level = None
-    cursor = conn.cursor()
-    cursor.execute('BEGIN')
-    finished = False
-    try:
-        save_message(cursor, message)
-        cursor.execute('COMMIT')
-        finished = True
-    finally:
-        if not finished:
-            cursor.execute('ROLLBACK')
-
+def process_message(db, message):
+    # transaction:
+    with db:
+        with db.cursor() as cursor:
+            save_message(cursor, message)
 
 def save_message(cursor, message):
     event_type_id = find_or_create_type(cursor, message.event_type, 'event_types')
@@ -33,19 +25,21 @@ def save_message(cursor, message):
 def create_event(cursor, lims_id, uuid, event_type_id, timestamp, user_identifier):
     cursor.execute(
         '''INSERT INTO events
-           (lims_id, uuid, event_type_id, occurred_at, user_identifier, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+           (lims_id, uuid, event_type_id, occurred_at, user_identifier)
+           VALUES (%s, %s, %s, %s, %s)
+           RETURNING id''',
         (lims_id, uuid, event_type_id, timestamp, user_identifier)
     )
-    return cursor.lastrowid
+    return cursor.fetchone()[0]
 
 def create_role(cursor, event_id, subject_id, role_type_id):
     cursor.execute(
-        '''INSERT INTO roles (event_id, subject_id, role_type_id, created_at, updated_at)
-           VALUES (?,?,?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+        '''INSERT INTO roles (event_id, subject_id, role_type_id)
+           VALUES (%s, %s, %s)
+           RETURNING id''',
         (event_id, subject_id, role_type_id)
     )
-    return cursor.lastrowid
+    return cursor.fetchone()[0]
 
 def create_metadata(cursor, event_id, metadata):
     for key,values in metadata.iteritems():
@@ -54,33 +48,33 @@ def create_metadata(cursor, event_id, metadata):
         for v in values:
             cursor.execute(
                 '''INSERT INTO metadata
-                   (event_id, data_key, data_value, created_at, updated_at)
-                   VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
+                   (event_id, data_key, data_value)
+                   VALUES (%s, %s, %s)''',
                 (event_id, key, v)
             )
 
 def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
-    cursor.execute('SELECT id FROM subjects WHERE uuid=?', (uuid,))
+    cursor.execute('SELECT id FROM subjects WHERE uuid=%s', (uuid,))
     result = cursor.fetchone()
-    if result:
-        return result[0]
-    cursor.execute(
-        '''INSERT INTO subjects
-            (uuid, friendly_name, subject_type_id, created_at, updated_at)
-            VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)''',
-        (uuid, friendly_name, subject_type_id)
-    )
-    return cursor.lastrowid
+    if not result:
+        cursor.execute(
+            '''INSERT INTO subjects
+                (uuid, friendly_name, subject_type_id)
+                VALUES (%s, %s, %s)
+                RETURNING id''',
+            (uuid, friendly_name, subject_type_id)
+        )
+        result = cursor.fetchone()
+    return result[0]
 
 def find_or_create_type(cursor, name, table):
-    cursor.execute('SELECT id FROM %s WHERE name=?'%table, (name,))
+    cursor.execute('SELECT id FROM {} WHERE name=%s'.format(table), (name,))
     result = cursor.fetchone()
-    if result:
-        return result[0]
-    cursor.execute(
-        '''INSERT INTO %s (name, created_at, updated_at) VALUES
-           (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)'''%table,
-        (name,)
-    )
-    return cursor.lastrowid
+    if not result:
+        cursor.execute(
+            'INSERT INTO {} (name) VALUES (%s) RETURNING id'.format(table),
+            (name,)
+        )
+        result = cursor.fetchone()
+    return result[0]
 

@@ -5,7 +5,8 @@ import traceback
 import sys
 import os
 
-from events_consumer import Message, setup_database, process_message
+from events_consumer import Message, db_connect, process_message
+from contextlib import closing
 
 def on_message(channel, method_frame, header_frame, body):
     try:
@@ -20,20 +21,22 @@ def on_message(channel, method_frame, header_frame, body):
     except Exception:
         traceback.print_exc(file=sys.stderr)
 
-env = os.getenv('aker_events_consumer_env', 'development')
+if len(sys.argv) > 1:
+    env = sys.argv[1]
+else:
+    env = os.getenv('aker_events_consumer_env', 'development')
 
-db = setup_database(env)
+db = db_connect(env)
 
 credentials = pika.PlainCredentials('guest', 'guest')
 parameters = pika.ConnectionParameters('localhost', 5672, '/', credentials)
 
-connection = pika.BlockingConnection(parameters)
-channel = connection.channel()
-channel.basic_consume(on_message, 'aker.events')
+with closing(pika.BlockingConnection(parameters)) as connection:
+    channel = connection.channel()
+    channel.basic_consume(on_message, 'aker.events')
 
-try:
-    channel.start_consuming()
-finally:
-    channel.stop_consuming()
-    connection.close()
-    db.close()
+    try:
+        channel.start_consuming()
+    finally:
+        channel.stop_consuming()
+

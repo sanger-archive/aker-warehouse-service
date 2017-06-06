@@ -1,40 +1,43 @@
-from nose.tools import *
 from parameterized import parameterized
 import unittest
 import mock
 import json
 from itertools import izip
 from uuid import uuid4
+from datetime import datetime
+import dateutil.parser
 
 from events_consumer import Message
-from events_consumer import setup_database
+from events_consumer import db_connect
 from events_consumer.process import *
 
 def new_uuid():
     return str(uuid4())
 
+SOME_TIMESTAMP = dateutil.parser.parse('2017-06-06T12:13:58.509575')
+
 class ProcessTests(unittest.TestCase):
 
     @classmethod
-    def setup_class(cls):
-        cls.conn = setup_database('test')
-        cursor = cls.conn.cursor()
-        cls.event_type_id = find_or_create_type(cursor, 'apocalypse', 'event_types')
-        cls.subject_type_id = find_or_create_type(cursor, 'monkey', 'subject_types')
-        cls.role_type_id = find_or_create_type(cursor, 'instigator', 'role_types')
-        cls.conn.isolation_level = None
-        cls.cursor = cls.conn.cursor()
-        cls.some_timestamp = 1496159601659
+    def setUpClass(cls):
+        db = db_connect('test')
+        with db:
+            with db.cursor() as cursor:
+                cls.event_type_id = find_or_create_type(cursor, 'apocalypse', 'event_types')
+                cls.subject_type_id = find_or_create_type(cursor, 'monkey', 'subject_types')
+                cls.role_type_id = find_or_create_type(cursor, 'instigator', 'role_types')
+        cls.db = db
 
     @classmethod
-    def teardown_class(cls):
-        cls.conn.close()
+    def tearDownClass(cls):
+        cls.db.close()
 
-    def setup(self):
-        self.cursor.execute('BEGIN')
+    def setUp(self):
+        self.cursor = self.db.cursor()
 
-    def teardown(self):
-        self.cursor.execute('ROLLBACK')
+    def tearDown(self):
+        self.db.rollback()
+        self.cursor.close()
 
     def query(self, sql, parameters, multiple=False):
         self.cursor.execute(sql, parameters)
@@ -46,26 +49,26 @@ class ProcessTests(unittest.TestCase):
         uuid = new_uuid()
         user = 'dr6@sanger.ac.uk'
         event_id = create_event(self.cursor, 'aker', uuid, self.event_type_id,
-                                self.some_timestamp, user)
+                                SOME_TIMESTAMP, user)
         result = self.query(
             '''SELECT lims_id, uuid, event_type_id, occurred_at, user_identifier
-              FROM events WHERE id=?''',
+              FROM events WHERE id=%s''',
             (event_id,)
         )
         self.assertIsNotNone(result)
         self.assertEqual(result[0], 'aker')
         self.assertEqual(result[1], uuid)
         self.assertEqual(result[2], self.event_type_id)
-        self.assertEqual(result[3], self.some_timestamp)
+        self.assertEqual(result[3], SOME_TIMESTAMP)
         self.assertEqual(result[4], user)
 
     def test_create_role(self):
         event_id = create_event(self.cursor, 'aker', new_uuid(), self.event_type_id,
-                                self.some_timestamp, 'dr6@sanger.ac.uk')
+                                SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
         subject_id = find_or_create_subject(self.cursor, new_uuid(), 'Timmy', self.subject_type_id)
         role_id = create_role(self.cursor, event_id, subject_id, self.role_type_id)
         result = self.query(
-            'SELECT event_id, subject_id, role_type_id FROM roles WHERE id=?',
+            'SELECT event_id, subject_id, role_type_id FROM roles WHERE id=%s',
             (role_id,)
         )
         self.assertIsNotNone(result)
@@ -75,13 +78,13 @@ class ProcessTests(unittest.TestCase):
 
     def test_create_metadata(self):
         event_id = create_event(self.cursor, 'aker', new_uuid(), self.event_type_id,
-                                self.some_timestamp, 'dr6@sanger.ac.uk')
+                                SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
         metadata = { "weapon": "banana gun", "mood": ["confused", "angry"] }
 
         create_metadata(self.cursor, event_id, metadata)
 
         results = self.query(
-            'SELECT data_key, data_value FROM metadata WHERE event_id=?',
+            'SELECT data_key, data_value FROM metadata WHERE event_id=%s',
             (event_id,),
             multiple=True
         )
@@ -97,7 +100,7 @@ class ProcessTests(unittest.TestCase):
         name = 'Timmy'
         subject_id = find_or_create_subject(self.cursor, uuid, name, self.subject_type_id)
         result = self.query(
-            'SELECT uuid, friendly_name, subject_type_id FROM subjects WHERE id=?',
+            'SELECT uuid, friendly_name, subject_type_id FROM subjects WHERE id=%s',
             (subject_id,)
         )
         self.assertIsNotNone(result)
@@ -112,7 +115,7 @@ class ProcessTests(unittest.TestCase):
     @parameterized.expand(['event_types', 'role_types', 'subject_types'])
     def test_find_or_create_type(self, table_name):
         type_id = find_or_create_type(self.cursor, 'bubbles', table_name)
-        result = self.query('SELECT name FROM %s WHERE id=?'%table_name, (type_id,))
+        result = self.query('SELECT name FROM {} WHERE id=%s'.format(table_name), (type_id,))
         self.assertIsNotNone(result)
         self.assertEqual(result[0], 'bubbles')
 
@@ -125,7 +128,7 @@ class ProcessTests(unittest.TestCase):
             event_type="invasion",
             lims_id="banana",
             uuid=new_uuid(),
-            timestamp=1496159601659,
+            timestamp=SOME_TIMESTAMP,
             user_identifier='dr6@sanger.ac.uk',
             roles = [
                     Message.Role('work_order', 'work_order', 'Work Order 11', new_uuid()),
@@ -143,7 +146,7 @@ class ProcessTests(unittest.TestCase):
         result = self.query(
             '''SELECT e.lims_id, e.uuid, et.name, e.occurred_at, e.user_identifier
               FROM events e JOIN event_types et ON (e.event_type_id=et.id)
-              WHERE e.id=?''',
+              WHERE e.id=%s''',
             (event_id,)
         )
         self.assertIsNotNone(result)
@@ -159,7 +162,7 @@ class ProcessTests(unittest.TestCase):
                 FROM roles r JOIN role_types rt ON (r.role_type_id=rt.id)
                   JOIN subjects s ON (r.subject_id=s.id)
                   JOIN subject_types st ON (s.subject_type_id=st.id)
-                WHERE r.event_id=?''',
+                WHERE r.event_id=%s''',
             (event_id,),
             multiple=True
         )
@@ -170,7 +173,7 @@ class ProcessTests(unittest.TestCase):
 
         # Check the metadata
         results = self.query(
-            'SELECT data_key, data_value FROM metadata WHERE event_id=?',
+            'SELECT data_key, data_value FROM metadata WHERE event_id=%s',
             (event_id,),
             multiple=True
         )
@@ -181,35 +184,30 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(results[2], ('colour', 'red'))
         self.assertEqual(results[3], ('comment', 'Do my work'))
 
-    @parameterized.expand(['COMMIT', 'ROLLBACK'])
-    def test_process_message(self, transaction_result):
-        message = Message(
-            event_type="invasion",
-            lims_id="banana",
-            uuid=new_uuid(),
-            timestamp=1496159601659,
-            user_identifier='dr6@sanger.ac.uk',
-            roles = [
-                    Message.Role('work_order', 'work_order', 'Work Order 11', new_uuid()),
-                    Message.Role('project', 'project', 'Viruses', new_uuid()),
-                    Message.Role('product', 'product', 'Ham sandwich', new_uuid()),
-            ],
-            metadata = {
-                'comment': 'Do my work',
-                'colour': ['red', 'green', 'blue'],
-            },
-        )
-        mock_conn = mock.MagicMock(name='conn')
-        mock_cursor = mock.MagicMock(name='cursor')
-        mock_conn.cursor.return_value = mock_cursor
-        mock_conn.isolation_level = 'Not none'
-        with mock.patch('events_consumer.process.save_message') as mock_save_message:
-            if transaction_result=='ROLLBACK':
-                mock_save_message.side_effect = ValueError('Something went wrong in the message')
-                with self.assertRaises(ValueError):
-                    process_message(mock_conn, message)
+    @parameterized.expand([[True], [False]])
+    def test_process_message(self, success):
+        data = 'TESTDATA_%s'%datetime.now().isoformat()
+        replacement = mock_save_message_success if success else mock_save_message_failure
+        with mock.patch('events_consumer.process.save_message', new=replacement):
+            if success:
+                process_message(self.db, data)
             else:
-                process_message(mock_conn, message)
-        self.assertEqual(mock_save_message.mock_calls, [mock.call(mock_cursor, message)])
-        self.assertEqual(mock_conn.isolation_level, None)
-        self.assertEqual(mock_cursor.execute.mock_calls, [mock.call('BEGIN'), mock.call(transaction_result)])
+                with self.assertRaises(ValueError):
+                    process_message(self.db, data)
+        with self.db.cursor() as cursor:
+            cursor.execute('SELECT * FROM subject_types WHERE name=%s', (data,))
+            results = cursor.fetchone()
+            if success:
+                # The row data should have been added
+                self.assertTrue(results)
+            else:
+                # The row data should have been rolled back
+                self.assertFalse(results)
+
+def mock_save_message_success(cursor, data):
+    cursor.execute('INSERT INTO subject_types (name) VALUES (%s)', (data,))
+
+def mock_save_message_failure(cursor, data):
+    cursor.execute('INSERT INTO subject_types (name) VALUES (%s)', (data,))
+    raise ValueError('Something went wrong')
+

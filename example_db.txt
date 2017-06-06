@@ -1,6 +1,0 @@
-[DEFAULT]
-host = my_host
-port = 123
-database = my_schema_name
-user = my_username
-password = my_password

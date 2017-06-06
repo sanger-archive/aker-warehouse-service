@@ -2,7 +2,7 @@
 This class represents a message sent from an Aker application or service
 """
 import json
-
+import dateutil.parser
 from collections import namedtuple
 
 class Message(object):
@@ -76,10 +76,12 @@ class Message(object):
         :rtype Message
         """
         data = json.loads(message_as_json)
+        data['timestamp'] = dateutil.parser.parse(data['timestamp'])
         data['roles'] = tuple(Message.Role(**role_data) for role_data in data['roles'])
         return cls(**data)
 
     def __repr__(self):
-        return 'Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={}, user_identifier={!r}, roles={}, metadata={})'.format(
-            self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata)
+        return 'Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={!r}, user_identifier={!r}, roles={}, metadata={})'.format(
+            self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata
+        )
 

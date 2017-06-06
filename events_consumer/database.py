@@ -1,22 +1,11 @@
+import psycopg2
 from ConfigParser import ConfigParser
 
-def setup_database(env='development'):
-    if env in ('development', 'test'):
-        import sqlite3
-        conn = sqlite3.connect(':memory:')
-        create_schema(conn)
-    elif env in ('staging', 'production'):
-        import psycopg2
-        details = connection_details(env)
-        conn = psycopg2.connect(**details)
-    else:
+def db_connect(env='development'):
+    if env not in ('development', 'test', 'staging', 'production'):
         raise ValueError("Unrecognised environment: %r"%env)
-    return conn
-
-
-def create_schema(conn):
-    with open('schema.sql', 'r') as fin:
-        conn.executescript(fin.read())
+    details = connection_details(env)
+    return psycopg2.connect(**details)
 
 def connection_details(env):
     filename = '%s_db.txt'%env
