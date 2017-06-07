@@ -45,3 +45,5 @@ The connection details are in a local file called `[environment]_db.txt` (e.g. `
 (It is possible to set up your database so that the details in development_db.txt will just work.)
 
 Load the `schema.sql` file into your database to set up the tables.
+
+There is a small amendment (described in comments) that needs to be made to the sql for it to run successfully in DBVisualizer.
