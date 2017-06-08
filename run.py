@@ -53,7 +53,7 @@ def notify_nack_fail(message_body, **kwargs):
     notify(reason, message_body, **kwargs)
 
 def notify(reason, message_body, env, email_config):
-    if env not in ['staging', 'production', 'development']:
+    if env not in ['staging', 'production',]:
         pass
 
     text = '''
