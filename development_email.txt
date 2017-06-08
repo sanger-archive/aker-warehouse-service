@@ -1,0 +1,4 @@
+[DEFAULT]
+to = someone@mail.com,jason@monkey_havoc.org
+from_address = aker@sanger.ac.uk
+smtp_address = mail.monkey_havoc.org
