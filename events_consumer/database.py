@@ -2,8 +2,6 @@ import psycopg2
 from ConfigParser import ConfigParser
 
 def db_connect(env='development'):
-    if env not in ('development', 'test', 'staging', 'production'):
-        raise ValueError("Unrecognised environment: %r"%env)
     details = connection_details(env)
     return psycopg2.connect(**details)
 
