@@ -8,6 +8,7 @@ from datetime import datetime
 import dateutil.parser
 
 from events_consumer import Message
+from events_consumer import Config
 from events_consumer import db_connect
 from events_consumer.process import *
 
@@ -20,7 +21,8 @@ class ProcessTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        db = db_connect('test')
+        config = Config('test.txt')
+        db = db_connect(config)
         with db:
             with db.cursor() as cursor:
                 cls.event_type_id = find_or_create_type(cursor, 'apocalypse', 'event_types')

@@ -1,6 +1,0 @@
-[DEFAULT]
-host = localhost
-port = 5432
-database = aker_events_warehouse
-user = 
-password = 
