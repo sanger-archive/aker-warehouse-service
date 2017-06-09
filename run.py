@@ -8,7 +8,6 @@ import sys
 import os
 import argparse
 import smtplib
-import lockfile
 from daemon import DaemonContext
 from email.mime.text import MIMEText
 from contextlib import closing
@@ -93,7 +92,7 @@ def main():
 
     on_message_partial = partial(on_message, env=env, config=config)
 
-    # # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
+    # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
     with DaemonContext(
             working_directory=os.getcwd(),
             stdout=open(config.process.logfile, 'w'),
