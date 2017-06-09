@@ -87,7 +87,7 @@ def main():
     if env not in ('development', 'test', 'staging', 'production'):
         raise ValueError("Unrecognised environment: %r"%env)
 
-    config = Config('%s.txt'%env)
+    config = Config('%s/%s.txt'%(os.getcwd(), env))
     db = db_connect(config)
 
     on_message_partial = partial(on_message, env=env, config=config)
