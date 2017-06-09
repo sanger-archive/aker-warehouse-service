@@ -8,13 +8,12 @@ import sys
 import os
 import argparse
 import smtplib
+from daemon import DaemonContext, pidfile
 from email.mime.text import MIMEText
-from collections import namedtuple
 from contextlib import closing
-from ConfigParser import ConfigParser
 from functools import partial
 
-from events_consumer import Message, db_connect, process_message
+from events_consumer import Message, db_connect, process_message, Config
 
 def on_message(channel, method_frame, header_frame, body, **kwargs):
     try:
@@ -52,9 +51,9 @@ def notify_nack_fail(message_body, **kwargs):
     reason = 'The following message failed to be processed and could not be nacked'
     notify(reason, message_body, **kwargs)
 
-def notify(reason, message_body, env, email_config):
-    if env not in ['staging', 'production',]:
-        pass
+def notify(reason, message_body, env, config):
+    if env not in ['staging', 'production']:
+        return
 
     text = '''
     %s:
@@ -69,41 +68,12 @@ def notify(reason, message_body, env, email_config):
 
     msg = MIMEText(text)
     msg['Subject'] = 'Aker Events Consumer: Message Processing Failed'
-    msg['From'] = email_config.from_address
-    msg['To'] = email_config.to
+    msg['From'] = config.email.from_address
+    msg['To'] = config.email.to
 
-    s = smtplib.SMTP(email_config.smtp_address)
-    s.sendmail(email_config.to, email_config.to.split(','), msg.as_string())
+    s = smtplib.SMTP(config.email.smtp_address)
+    s.sendmail(config.email.to, config.email.to.split(','), msg.as_string())
     s.quit()
-
-QueueConfig = namedtuple('QueueConfig', 'user password host port virtual_host queue')
-
-def queue_config(env):
-    filename = '%s_queue.txt'%env
-    config = ConfigParser()
-    config.read(filename)
-    values = config.defaults()
-    return QueueConfig(
-        values['user'],
-        values['password'],
-        values['host'],
-        int(values['port']),
-        values['virtual_host'],
-        values['queue'],
-    )
-
-EmailConfig = namedtuple('EmailConfig', 'from_address to smtp_address')
-
-def email_config(env):
-    filename = '%s_email.txt'%env
-    config = ConfigParser()
-    config.read(filename)
-    values = config.defaults()
-    return EmailConfig(
-        values['from_address'],
-        values['to'],
-        values['smtp_address'],
-    )
 
 def main():
     global db
@@ -117,26 +87,32 @@ def main():
     if env not in ('development', 'test', 'staging', 'production'):
         raise ValueError("Unrecognised environment: %r"%env)
 
-    qc = queue_config(env)
-    db = db_connect(env)
-    ec = email_config(env)
+    config = Config('%s.txt'%env)
+    db = db_connect(config)
 
-    on_message_partial = partial(on_message, env=env, email_config=ec)
+    on_message_partial = partial(on_message, env=env, config=config)
 
-    try:
-        credentials = pika.PlainCredentials(qc.user, qc.password)
-        parameters = pika.ConnectionParameters(qc.host, qc.port, qc.virtual_host, credentials)
+    # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
+    with DaemonContext(
+            working_directory=os.getcwd(),
+            stdout=open(config.process.logfile, 'w'),
+            stderr=open(config.process.errorlog, 'w'),
+            pidfile=pidfile.PIDLockFile(config.process.pidfile),
+        ):
+        try:
+            credentials = pika.PlainCredentials(config.message_queue.user, config.message_queue.password)
+            parameters = pika.ConnectionParameters(config.message_queue.host, config.message_queue.port, config.message_queue.virtual_host, credentials)
 
-        with closing(pika.BlockingConnection(parameters)) as connection:
-            channel = connection.channel()
-            channel.basic_consume(on_message_partial, qc.queue)
-            try:
-                print "Listening on %s ..."%qc.queue
-                channel.start_consuming()
-            finally:
-                channel.stop_consuming()
-    finally:
-        db.close()
+            with closing(pika.BlockingConnection(parameters)) as connection:
+                channel = connection.channel()
+                channel.basic_consume(on_message_partial, config.message_queue.queue)
+                try:
+                    print "Listening on %s ..."%config.message_queue.queue
+                    channel.start_consuming()
+                finally:
+                    channel.stop_consuming()
+        finally:
+            db.close()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()

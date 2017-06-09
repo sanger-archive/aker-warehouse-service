@@ -1,0 +1,24 @@
+[MessageQueue]
+host = localhost
+port = 5672
+virtual_host = /
+user = guest
+password = guest
+queue = aker.events
+
+[Process]
+logfile = development.log
+errorlog = error.log
+pidfile = aker_event_consumer.pid
+
+[Email]
+to = cs24@sanger.ac.uk
+from_address = aker@sanger.ac.uk
+smtp_address = mail.sanger.ac.uk
+
+[Database]
+host = localhost
+port = 5432
+database = aker_events_warehouse
+user =
+password =

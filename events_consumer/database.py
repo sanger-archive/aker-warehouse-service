@@ -1,19 +1,15 @@
 import psycopg2
 from ConfigParser import ConfigParser
 
-def db_connect(env='development'):
-    details = connection_details(env)
+def db_connect(config):
+    details = connection_details(config)
     return psycopg2.connect(**details)
 
-def connection_details(env):
-    filename = '%s_db.txt'%env
-    config = ConfigParser()
-    config.read(filename)
-    values = config.defaults()
+def connection_details(config):
     return {
-        'host': values['host'],
-        'port': int(values['port']),
-        'database': values['database'],
-        'user': values['user'],
-        'password': values['password'],
+        'host': config.database.host,
+        'port': config.database.port,
+        'database': config.database.database,
+        'user': config.database.user,
+        'password': config.database.password,
     }
