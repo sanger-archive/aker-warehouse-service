@@ -8,7 +8,7 @@ import sys
 import os
 import argparse
 import smtplib
-from daemon import DaemonContext
+from daemon import DaemonContext, pidfile
 from email.mime.text import MIMEText
 from contextlib import closing
 from functools import partial
@@ -97,6 +97,7 @@ def main():
             working_directory=os.getcwd(),
             stdout=open(config.process.logfile, 'w'),
             stderr=open(config.process.errorlog, 'w'),
+            pidfile=pidfile.PIDLockFile(config.process.pidfile),
         ):
         try:
             credentials = pika.PlainCredentials(config.message_queue.user, config.message_queue.password)

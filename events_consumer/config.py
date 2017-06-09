@@ -9,7 +9,7 @@ class Config(object):
 
     QueueConfig = namedtuple('QueueConfig', 'user password host port virtual_host queue')
     EmailConfig = namedtuple('EmailConfig', 'from_address to smtp_address')
-    ProcessConfig = namedtuple('ProcessConfig', 'logfile errorlog')
+    ProcessConfig = namedtuple('ProcessConfig', 'logfile errorlog pidfile')
     DatabaseConfig = namedtuple('DatabaseConfig', 'host port database user password')
 
     def __init__(self, config_file_path):
@@ -58,6 +58,7 @@ class Config(object):
         return self.ProcessConfig(
             config.get(section, 'logfile'),
             config.get(section, 'errorlog'),
+            config.get(section, 'pidfile'),
         )
 
     def _database_config(self, config, section):

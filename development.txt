@@ -9,6 +9,7 @@ queue = aker.events
 [Process]
 logfile = development.log
 errorlog = error.log
+pidfile = aker_event_consumer.pid
 
 [Email]
 to = cs24@sanger.ac.uk
