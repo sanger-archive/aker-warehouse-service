@@ -9,6 +9,7 @@ queue = aker.events
 [Process]
 logfile = development.log
 errorlog = error.log
+pidfile = aker_event_consumer.pid
 
 [Email]
 to = someone@mail.com,jason@monkey_havoc.org
@@ -18,6 +19,6 @@ smtp_address = mail.monkey_havoc.org
 [Database]
 host = localhost
 port = 5432
-database = aker_events_warehouse
+database = aker_events_warehouse_test
 user =
 password =
