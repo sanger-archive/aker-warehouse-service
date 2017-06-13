@@ -88,9 +88,6 @@ def main():
         raise ValueError("Unrecognised environment: %r"%env)
 
     config = Config('%s/%s.txt'%(os.path.dirname(os.path.realpath(__file__)), env))
-    db = db_connect(config)
-
-    on_message_partial = partial(on_message, env=env, config=config)
 
     # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
     with DaemonContext(
@@ -99,6 +96,10 @@ def main():
             stderr=open(config.process.errorlog, 'w'),
             pidfile=pidfile.PIDLockFile(config.process.pidfile),
         ):
+        db = db_connect(config)
+
+        on_message_partial = partial(on_message, env=env, config=config)
+
         try:
             credentials = pika.PlainCredentials(config.message_queue.user, config.message_queue.password)
             parameters = pika.ConnectionParameters(config.message_queue.host, config.message_queue.port, config.message_queue.virtual_host, credentials)
