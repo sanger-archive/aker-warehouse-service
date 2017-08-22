@@ -7,7 +7,7 @@ class Trunc(object):
     def __len__(self):
         return self._length
     def __call__(self, string):
-        if len(string) > len(self):
+        if isinstance(string, basestring) and len(string) > len(self):
             if self.print_truncation:
                 print "Truncating %s to %d characters: %r"%(self._desc, len(self), string)
             string = string[:len(self)]
