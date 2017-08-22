@@ -1,3 +1,26 @@
+class Trunc(object):
+    """Utility class for truncating strings (and printing a message about it)."""
+    print_truncation = True
+    def __init__(self, length, desc):
+        self._length = length
+        self._desc = desc
+    def __len__(self):
+        return self._length
+    def __call__(self, string):
+        if len(string) > len(self):
+            if self.print_truncation:
+                print "Truncating %s to %d characters: %r"%(self._desc, len(self), string)
+            string = string[:len(self)]
+        return string
+
+# These numbers must match the columns lengths in the schema
+Trunc.type_name = Trunc(64, 'type name')
+Trunc.friendly_name = Trunc(128, 'friendly name')
+Trunc.lims_id = Trunc(8, 'lims id')
+Trunc.user = Trunc(255, 'user identifier')
+Trunc.metadata_key = Trunc(64, 'metadata key')
+Trunc.metadata_value = Trunc(255, 'metadata value')
+
 def process_message(db, message):
     # transaction:
     with db:
@@ -23,6 +46,8 @@ def save_message(cursor, message):
     return event_id
 
 def create_event(cursor, lims_id, uuid, event_type_id, timestamp, user_identifier):
+    lims_id = Trunc.lims_id(lims_id)
+    user_identifier = Trunc.user(user_identifier)
     cursor.execute(
         '''INSERT INTO events
            (lims_id, uuid, event_type_id, occurred_at, user_identifier)
@@ -43,9 +68,11 @@ def create_role(cursor, event_id, subject_id, role_type_id):
 
 def create_metadata(cursor, event_id, metadata):
     for key,values in metadata.iteritems():
+        key = Trunc.metadata_key(key)
         if not isinstance(values, (list, tuple)):
             values = [values]
         for v in values:
+            v = Trunc.metadata_value(v)
             cursor.execute(
                 '''INSERT INTO metadata
                    (event_id, data_key, data_value)
@@ -54,6 +81,7 @@ def create_metadata(cursor, event_id, metadata):
             )
 
 def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
+    friendly_name = Trunc.friendly_name(friendly_name)
     cursor.execute('SELECT id FROM subjects WHERE uuid=%s', (uuid,))
     result = cursor.fetchone()
     if not result:
@@ -68,6 +96,7 @@ def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
     return result[0]
 
 def find_or_create_type(cursor, name, table):
+    name = Trunc.type_name(name)
     cursor.execute('SELECT id FROM {} WHERE name=%s'.format(table), (name,))
     result = cursor.fetchone()
     if not result:

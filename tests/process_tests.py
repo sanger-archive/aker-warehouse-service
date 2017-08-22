@@ -64,6 +64,24 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(result[3], SOME_TIMESTAMP)
         self.assertEqual(result[4], user)
 
+    def test_create_event_too_long(self):
+        uuid = new_uuid()
+        user = 'dr6@sanger.ac.uk'+('z'*300)
+        lims_id = 'aker'+('x'*300)
+        event_id = create_event(self.cursor, lims_id, uuid, self.event_type_id,
+                                SOME_TIMESTAMP, user)
+        result = self.query(
+            '''SELECT lims_id, uuid, event_type_id, occurred_at, user_identifier
+              FROM events WHERE id=%s''',
+            (event_id,)
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], lims_id[:len(Trunc.lims_id)])
+        self.assertEqual(result[1], uuid)
+        self.assertEqual(result[2], self.event_type_id)
+        self.assertEqual(result[3], SOME_TIMESTAMP)
+        self.assertEqual(result[4], user[:len(Trunc.user)])
+
     def test_create_role(self):
         event_id = create_event(self.cursor, 'aker', new_uuid(), self.event_type_id,
                                 SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
@@ -97,6 +115,27 @@ class ProcessTests(unittest.TestCase):
         self.assertEqual(results[1], ('mood', 'confused'))
         self.assertEqual(results[2], ('weapon', 'banana gun'))
 
+    def test_create_metadata_too_long(self):
+        event_id = create_event(self.cursor, 'aker', new_uuid(), self.event_type_id,
+                                SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
+        long_key = 'weapon'+(300*'x')
+        long_value = 'confused'+(300*'z')
+        metadata = { long_key: "banana gun", "mood": [long_value, "angry"] }
+
+        create_metadata(self.cursor, event_id, metadata)
+
+        results = self.query(
+            'SELECT data_key, data_value FROM metadata WHERE event_id=%s',
+            (event_id,),
+            multiple=True
+        )
+        self.assertEqual(len(results), 3)
+        results.sort()
+
+        self.assertEqual(results[0], ('mood', 'angry'))
+        self.assertEqual(results[1], ('mood', long_value[:len(Trunc.metadata_value)]))
+        self.assertEqual(results[2], (long_key[:len(Trunc.metadata_key)], 'banana gun'))
+
     def test_find_or_create_subject(self):
         uuid = new_uuid()
         name = 'Timmy'
@@ -114,6 +153,23 @@ class ProcessTests(unittest.TestCase):
         same_subject_id = find_or_create_subject(self.cursor, uuid, name, self.subject_type_id)
         self.assertEqual(subject_id, same_subject_id)
 
+    def test_find_or_create_subject_too_long(self):
+        uuid = new_uuid()
+        name = 'Timmy'+('x'*300)
+        subject_id = find_or_create_subject(self.cursor, uuid, name, self.subject_type_id)
+        result = self.query(
+            'SELECT uuid, friendly_name, subject_type_id FROM subjects WHERE id=%s',
+            (subject_id,)
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], uuid)
+        self.assertEqual(result[1], name[:len(Trunc.friendly_name)])
+        self.assertEqual(result[2], self.subject_type_id)
+
+        # Testing when subject already exists, get that subject_id back
+        same_subject_id = find_or_create_subject(self.cursor, uuid, name, self.subject_type_id)
+        self.assertEqual(subject_id, same_subject_id)
+
     @parameterized.expand(['event_types', 'role_types', 'subject_types'])
     def test_find_or_create_type(self, table_name):
         type_id = find_or_create_type(self.cursor, 'bubbles', table_name)
@@ -123,6 +179,17 @@ class ProcessTests(unittest.TestCase):
 
         # Should get the same id back the second time
         same_type_id = find_or_create_type(self.cursor, 'bubbles', table_name)
+        self.assertEqual(type_id, same_type_id)
+
+    def find_or_create_type_too_long(self):
+        name = 'bubbles'+('x'*300)
+        type_id = find_or_create_type(self.cursor, name, table_name)
+        result = self.query('SELECT name FROM {} WHERE id=%s'.format(table_name), (type_id,))
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], name[:len(Trunc.type_name)])
+
+        # Should get the same id back the second time
+        same_type_id = find_or_create_type(self.cursor, name, table_name)
         self.assertEqual(type_id, same_type_id)
 
     def test_save_message(self):
