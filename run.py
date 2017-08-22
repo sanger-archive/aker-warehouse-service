@@ -15,7 +15,7 @@ from functools import partial
 
 from events_consumer import Message, db_connect, process_message, Config
 
-def on_message(channel, method_frame, header_frame, body, **kwargs):
+def on_message(channel, method_frame, header_frame, body, db, env, config):
     try:
         print method_frame.routing_key
         print method_frame.delivery_tag
@@ -35,36 +35,29 @@ def on_message(channel, method_frame, header_frame, body, **kwargs):
             print 'Error processing message. Not acknowledging.'
 
             # Notify everyone that processing failed
-            notify_process_fail(body, **kwargs)
+            notify_process_fail(body, env, config)
         except Exception:
             traceback.print_exc(file=sys.stderr)
             print 'Failed to nack message.'
 
             # Notify everyone that something went wrong while nacking a message
-            notify_nack_fail(body, **kwargs)
+            notify_nack_fail(body, env, config)
 
-def notify_process_fail(message_body, **kwargs):
+def notify_process_fail(message_body, env, config):
     reason = 'The following message failed to be processed in the Aker Events Consumer'
-    notify(reason, message_body, **kwargs)
+    notify(reason, message_body, env, config)
 
-def notify_nack_fail(message_body, **kwargs):
+def notify_nack_fail(message_body, env, config):
     reason = 'The following message failed to be processed and could not be nacked'
-    notify(reason, message_body, **kwargs)
+    notify(reason, message_body, env, config)
 
 def notify(reason, message_body, env, config):
     if env not in ['staging', 'production']:
         return
 
-    text = '''
-    %s:
+    signoff = 'Yours sincerely,\nAkerEventsConsumer'
 
-    %s
-
-    %s
-
-    Yours sincerely,
-    Aker Events Consumer
-    ''' % (reason, message_body, traceback.format_exc())
+    text = '\n{}:\n\n{}\n\n{}\n\n{}\n'.format(reason, message_body, traceback.format_exc(), signoff)
 
     msg = MIMEText(text)
     msg['Subject'] = 'Aker Events Consumer: Message Processing Failed'
@@ -76,8 +69,6 @@ def notify(reason, message_body, env, config):
     s.quit()
 
 def main():
-    global db
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('env', help='environment (e.g. development)', nargs='?', default=None)
     args = parser.parse_args()
@@ -98,7 +89,7 @@ def main():
         ):
         db = db_connect(config)
 
-        on_message_partial = partial(on_message, env=env, config=config)
+        on_message_partial = partial(on_message, db=db, env=env, config=config)
 
         try:
             credentials = pika.PlainCredentials(config.message_queue.user, config.message_queue.password)
