@@ -97,7 +97,7 @@ def main():
 
             with closing(pika.BlockingConnection(parameters)) as connection:
                 channel = connection.channel()
-                channel.basic_consume(on_message_partial, config.message_queue.queue)
+                channel.basic_consume(on_message_partial, config.message_queue.queue, no_ack=False))
                 try:
                     print "Listening on %s ..."%config.message_queue.queue
                     channel.start_consuming()
