@@ -20,5 +20,5 @@ smtp_address = mail.monkey_havoc.org
 host = localhost
 port = 5432
 database = aker_events_warehouse_test
-user =
+user = postgres
 password =

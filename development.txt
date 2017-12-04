@@ -4,7 +4,7 @@ port = 5672
 virtual_host = /
 user = guest
 password = guest
-queue = aker.events
+queue = aker.events.warehouse
 
 [Process]
 logfile = development.log
