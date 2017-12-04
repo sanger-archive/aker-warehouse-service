@@ -8,6 +8,7 @@ services:
   - postgresql
 before_script:
   - psql -c 'create database aker_events_warehouse_test;' -U postgres
+  - psql -U postgres -d aker_events_warehouse_test -f schema.sql
 # command to run tests
 script:
   - nosetests
