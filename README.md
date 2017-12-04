@@ -1,5 +1,6 @@
 Aker Events Consumer
 ===
+[![Build Status](https://travis-ci.org/sanger/aker-events-consumer.svg?branch=devel)](https://travis-ci.org/sanger/aker-events-consumer)
 
 Installation
 ---
