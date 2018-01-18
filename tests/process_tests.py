@@ -153,6 +153,18 @@ class ProcessTests(unittest.TestCase):
         same_subject_id = find_or_create_subject(self.cursor, uuid, name, self.subject_type_id)
         self.assertEqual(subject_id, same_subject_id)
 
+        # Testing that find_or_create_subject can update the friendly name
+        new_name = 'Kenny'
+        find_or_create_subject(self.cursor, uuid, new_name, self.subject_type_id)
+        result = self.query(
+            'SELECT uuid, friendly_name, subject_type_id FROM subjects WHERE id=%s',
+            (subject_id,)
+        )
+        self.assertIsNotNone(result)
+        self.assertEqual(result[0], uuid)
+        self.assertEqual(result[1], new_name)
+        self.assertEqual(result[2], self.subject_type_id)
+
     def test_find_or_create_subject_too_long(self):
         uuid = new_uuid()
         name = 'Timmy'+('x'*300)
