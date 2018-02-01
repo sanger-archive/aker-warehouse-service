@@ -105,3 +105,50 @@ CREATE TRIGGER update_events_updated_at BEFORE UPDATE ON events FOR EACH ROW EXE
 CREATE TRIGGER update_subjects_updated_at BEFORE UPDATE ON subjects FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_roles_updated_at BEFORE UPDATE ON roles FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
 CREATE TRIGGER update_metadata_updated_at BEFORE UPDATE ON metadata FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();
+
+-- views
+
+CREATE OR REPLACE VIEW work_order_view AS
+SELECT
+  wo.friendly_name AS work_order
+, start_event.user_identifier AS ordered_by
+, prod.friendly_name AS product
+, num_mat.data_value AS num_materials
+, proj.friendly_name AS project
+, start_event.occurred_at AS ordered
+, end_event.occurred_at AS ended
+, end_event.result
+
+FROM events start_event
+  JOIN event_types start_type ON (start_event.event_type_id=start_type.id)
+  JOIN roles wor ON (wor.event_id=start_event.id)
+  JOIN role_types wo_type ON (wor.role_type_id=wo_type.id)
+  JOIN subjects wo ON (wor.subject_id=wo.id)
+  JOIN roles prodr ON (prodr.event_id=start_event.id)
+  JOIN role_types prod_type ON (prodr.role_type_id=prod_type.id)
+  JOIN subjects prod ON (prodr.subject_id=prod.id)
+  JOIN roles projr ON (projr.event_id=start_event.id)
+  JOIN role_types proj_type ON (projr.role_type_id=proj_type.id)
+  JOIN subjects proj ON (projr.subject_id=proj.id)
+  JOIN metadata num_mat ON (num_mat.event_id=start_event.id)
+  LEFT JOIN (
+    SELECT e.occurred_at, r.subject_id, r.role_type_id,
+      CASE et.name
+        WHEN 'aker.events.work_order.cancelled' THEN 'Cancelled'
+        WHEN 'aker.events.work_order.completed' THEN 'Completed'
+      END as result
+    FROM events e
+      JOIN event_types et ON (e.event_type_id=et.id)
+      JOIN roles r ON (e.id=r.event_id)
+      JOIN role_types rt ON (r.role_type_id=rt.id)
+    WHERE et.name IN ('aker.events.work_order.cancelled', 'aker.events.work_order.completed')
+      AND rt.name='work_order'
+  ) AS end_event ON (end_event.subject_id=wo.id)
+
+WHERE
+  start_type.name='aker.events.work_order.submitted'
+  AND wo_type.name='work_order'
+  AND prod_type.name='product'
+  AND proj_type.name='project'
+  AND num_mat.data_key='num_materials'
+;
