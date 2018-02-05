@@ -2,6 +2,14 @@
 # Use python 2.7.14
 FROM python:2.7.14
 
+# Install and setup project dependencies
+RUN apt-get update && \
+    apt-get install -y supervisor
+
+RUN mkdir -p /var/log/supervisor
+
+ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 # Create the working directory
 # https://docs.docker.com/engine/reference/builder/#workdir
 WORKDIR /code
