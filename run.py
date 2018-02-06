@@ -88,8 +88,8 @@ def main():
     # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
     with DaemonContext(
             working_directory=os.getcwd(),
-            stdout=open(config.process.logfile, 'w'),
-            stderr=open(config.process.errorlog, 'w'),
+            stdout=open(config.process.logfile, 'a'),
+            stderr=open(config.process.errorlog, 'a'),
             pidfile=pidfile.PIDLockFile(config.process.pidfile)):
         db = db_connect(config)
 

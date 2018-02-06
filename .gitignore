@@ -1,7 +1,5 @@
 venv
 *.pyc
 .DS_Store
-staging_db.txt
-production_db.txt
-development.log
-error.log
+*.log
+*.pid
