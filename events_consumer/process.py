@@ -82,7 +82,7 @@ def create_metadata(cursor, event_id, metadata):
 
 def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
     friendly_name = Trunc.friendly_name(friendly_name)
-    cursor.execute('SELECT id FROM subjects WHERE uuid=%s', (uuid,))
+    cursor.execute('SELECT id, friendly_name FROM subjects WHERE uuid=%s', (uuid,))
     result = cursor.fetchone()
     if not result:
         cursor.execute(
@@ -93,6 +93,14 @@ def find_or_create_subject(cursor, uuid, friendly_name, subject_type_id):
             (uuid, friendly_name, subject_type_id)
         )
         result = cursor.fetchone()
+    elif result[1]!=friendly_name:
+        # update the subject's friendly name if it has changed
+        cursor.execute(
+            '''UPDATE subjects
+               SET friendly_name=%s
+               WHERE uuid=%s''',
+            (friendly_name, uuid)
+        )
     return result[0]
 
 def find_or_create_type(cursor, name, table):
