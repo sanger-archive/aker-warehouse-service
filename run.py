@@ -15,6 +15,7 @@ from functools import partial
 
 from events_consumer import Message, db_connect, process_message, Config
 
+
 def on_message(channel, method_frame, header_frame, body, db, env, config):
     try:
         print method_frame.routing_key
@@ -43,13 +44,16 @@ def on_message(channel, method_frame, header_frame, body, db, env, config):
             # Notify everyone that something went wrong while nacking a message
             notify_nack_fail(body, env, config)
 
+
 def notify_process_fail(message_body, env, config):
     reason = 'The following message failed to be processed in the Aker Events Consumer'
     notify(reason, message_body, env, config)
 
+
 def notify_nack_fail(message_body, env, config):
     reason = 'The following message failed to be processed and could not be nacked'
     notify(reason, message_body, env, config)
+
 
 def notify(reason, message_body, env, config):
     if env not in ['staging', 'production']:
@@ -68,6 +72,7 @@ def notify(reason, message_body, env, config):
     s.sendmail(config.email.to, config.email.to.split(','), msg.as_string())
     s.quit()
 
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('env', help='environment (e.g. development)', nargs='?', default=None)
@@ -76,35 +81,39 @@ def main():
     env = args.env or os.getenv('aker_events_consumer_env', 'development')
 
     if env not in ('development', 'test', 'staging', 'production'):
-        raise ValueError("Unrecognised environment: %r"%env)
+        raise ValueError("Unrecognised environment: %r" % env)
 
-    config = Config('%s/%s.txt'%(os.path.dirname(os.path.realpath(__file__)), env))
+    config = Config('%s/%s.txt' % (os.path.dirname(os.path.realpath(__file__)), env))
 
     # See https://pagure.io/python-daemon/blob/master/f/daemon/daemon.py#_63 for docs
     with DaemonContext(
             working_directory=os.getcwd(),
-            stdout=open(config.process.logfile, 'w'),
-            stderr=open(config.process.errorlog, 'w'),
-            pidfile=pidfile.PIDLockFile(config.process.pidfile),
-        ):
+            stdout=open(config.process.logfile, 'a'),
+            stderr=open(config.process.errorlog, 'a'),
+            pidfile=pidfile.PIDLockFile(config.process.pidfile)):
         db = db_connect(config)
 
         on_message_partial = partial(on_message, db=db, env=env, config=config)
 
         try:
-            credentials = pika.PlainCredentials(config.message_queue.user, config.message_queue.password)
-            parameters = pika.ConnectionParameters(config.message_queue.host, config.message_queue.port, config.message_queue.virtual_host, credentials)
+            credentials = pika.PlainCredentials(config.message_queue.user,
+                                                config.message_queue.password)
+            parameters = pika.ConnectionParameters(config.message_queue.host,
+                                                   config.message_queue.port,
+                                                   config.message_queue.virtual_host,
+                                                   credentials)
 
             with closing(pika.BlockingConnection(parameters)) as connection:
                 channel = connection.channel()
                 channel.basic_consume(on_message_partial, config.message_queue.queue)
                 try:
-                    print "Listening on %s ..."%config.message_queue.queue
+                    print 'Listening on %s ...' % config.message_queue.queue
                     channel.start_consuming()
                 finally:
                     channel.stop_consuming()
         finally:
             db.close()
+
 
 if __name__ == '__main__':
     main()
