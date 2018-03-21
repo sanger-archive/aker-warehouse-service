@@ -78,10 +78,13 @@ class Message(object):
         data = json.loads(message_as_json)
         data['timestamp'] = dateutil.parser.parse(data['timestamp'])
         data['roles'] = tuple(Message.Role(**role_data) for role_data in data['roles'])
+
+        # Ignore notifier_info for the events warehouse
+        data.pop('notifier_info', None)
+
         return cls(**data)
 
     def __repr__(self):
         return 'Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={!r}, user_identifier={!r}, roles={}, metadata={})'.format(
             self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata
         )
-
