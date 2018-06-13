@@ -2,7 +2,7 @@ from parameterized import parameterized
 import unittest
 import mock
 import json
-from itertools import izip
+
 from uuid import uuid4
 from datetime import datetime
 import dateutil.parser
@@ -249,7 +249,7 @@ class ProcessTests(unittest.TestCase):
         )
         self.assertEqual(len(results), len(message.roles))
         results.sort()
-        for actual, expected in izip(results, sorted(message.roles)):
+        for actual, expected in zip(results, sorted(message.roles)):
             self.assertEqual(actual, tuple(expected))
 
         # Check the metadata
