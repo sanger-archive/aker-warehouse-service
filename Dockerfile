@@ -1,5 +1,4 @@
 # aker-events-consumer
-# Use python 2.7.14
 FROM python:2.7.14
 
 ENV PYTHONUNBUFFERED 1
@@ -16,6 +15,9 @@ WORKDIR /code
 
 # Add the requirements file
 ADD requirements.txt /code/requirements.txt
+
+# Update pip
+RUN pip install --upgrade pip
 
 # Install packages required by project
 RUN pip install -r requirements.txt
