@@ -1,6 +1,19 @@
+git:
+  depth: false
+  submodules: false
+branches:
+  only:
+    - devel
+    - wip
+    - uat
+    - master
 language: python
 python:
-  - 2.7
+  - 3.6.5
+cache: pip
+env:
+  global:
+    - CC_TEST_REPORTER_ID=018e1c79fdb916b0dfb4c37d61aba5be50741e5512a0e5a92a3d8845dec8a6cb
 # command to install dependencies
 install:
   - pip install -r requirements.txt
@@ -12,3 +25,5 @@ before_script:
 # command to run tests
 script:
   - nosetests
+after_script:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
