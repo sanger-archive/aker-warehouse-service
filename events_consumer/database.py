@@ -1,5 +1,5 @@
 import psycopg2
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 def db_connect(config):
     details = connection_details(config)
