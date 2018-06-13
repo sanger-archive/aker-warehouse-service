@@ -27,7 +27,7 @@ before_script:
   - ./cc-test-reporter before-build
 # command to run tests
 script:
-  - nosetests
+  - nosetests --with-coverage
 after_script:
   - coverage xml
   - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
