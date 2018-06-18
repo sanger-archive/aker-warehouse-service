@@ -1,5 +1,5 @@
-# aker-events-consumer
-FROM python:2.7.14
+# aker-warehouse-service
+FROM python:3.6.5
 
 ENV PYTHONUNBUFFERED 1
 
@@ -26,7 +26,7 @@ RUN pip install -r requirements.txt
 ADD https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh /utils/wait-for-it.sh
 RUN chmod u+x /utils/wait-for-it.sh
 
-ADD consumer_supervisord.conf /etc/supervisor/conf.d/consumer_supervisord.conf
+ADD warehouse_supervisord.conf /etc/supervisor/conf.d/warehouse_supervisord.conf
 
 # Add all remaining contents to the image
 ADD . /code
