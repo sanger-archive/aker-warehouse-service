@@ -1,4 +1,4 @@
-#!/usr/bin/env python -tt
+#!/usr/local/bin/python python -tt
 
 """Reads messages off a queue and saves them in an events schema."""
 
@@ -18,13 +18,12 @@ from events_consumer import Message, db_connect, process_message, Config
 
 def on_message(channel, method_frame, header_frame, body, db, env, config):
     try:
-        print method_frame.routing_key
-        print method_frame.delivery_tag
-        print body
+        print(method_frame.routing_key)
+        print(method_frame.delivery_tag)
+        print(body)
         message = Message.from_json(body)
-        print message
+        print(message)
         process_message(db, message)
-        print
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
     except Exception:
         traceback.print_exc(file=sys.stderr)
@@ -32,14 +31,13 @@ def on_message(channel, method_frame, header_frame, body, db, env, config):
             # Nack the message without requeueing. Message will be resent to DLX
             channel.basic_nack(delivery_tag=method_frame.delivery_tag, requeue=False)
 
-            print
-            print 'Error processing message. Not acknowledging.'
+            print('Error processing message. Not acknowledging.')
 
             # Notify everyone that processing failed
             notify_process_fail(body, env, config)
         except Exception:
             traceback.print_exc(file=sys.stderr)
-            print 'Failed to nack message.'
+            print('Failed to nack message.')
 
             # Notify everyone that something went wrong while nacking a message
             notify_nack_fail(body, env, config)
@@ -107,7 +105,7 @@ def main():
                 channel = connection.channel()
                 channel.basic_consume(on_message_partial, config.message_queue.queue)
                 try:
-                    print 'Listening on %s ...' % config.message_queue.queue
+                    print('Listening on %s ...' % config.message_queue.queue)
                     channel.start_consuming()
                 finally:
                     channel.stop_consuming()

@@ -7,9 +7,9 @@ class Trunc(object):
     def __len__(self):
         return self._length
     def __call__(self, string):
-        if isinstance(string, basestring) and len(string) > len(self):
+        if isinstance(string, str) and len(string) > len(self):
             if self.print_truncation:
-                print "Truncating %s to %d characters: %r"%(self._desc, len(self), string)
+                print("Truncating %s to %d characters: %r"%(self._desc, len(self), string))
             string = string[:len(self)]
         return string
 
@@ -67,7 +67,7 @@ def create_role(cursor, event_id, subject_id, role_type_id):
     return cursor.fetchone()[0]
 
 def create_metadata(cursor, event_id, metadata):
-    for key,values in metadata.iteritems():
+    for key,values in list(metadata.items()):
         key = Trunc.metadata_key(key)
         if not isinstance(values, (list, tuple)):
             values = [values]
@@ -114,4 +114,3 @@ def find_or_create_type(cursor, name, table):
         )
         result = cursor.fetchone()
     return result[0]
-

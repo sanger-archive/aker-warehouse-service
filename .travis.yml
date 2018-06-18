@@ -1,6 +1,19 @@
+git:
+  depth: false
+  submodules: false
+branches:
+  only:
+    - devel
+    - wip
+    - uat
+    - master
 language: python
 python:
-  - 2.7
+  - 3.6.5
+cache: pip
+env:
+  global:
+    - CC_TEST_REPORTER_ID=018e1c79fdb916b0dfb4c37d61aba5be50741e5512a0e5a92a3d8845dec8a6cb
 # command to install dependencies
 install:
   - pip install -r requirements.txt
@@ -9,6 +22,12 @@ services:
 before_script:
   - psql -c 'create database aker_events_warehouse_test;' -U postgres
   - psql -U postgres -d aker_events_warehouse_test -f schema.sql
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
 # command to run tests
 script:
-  - nosetests
+  - nosetests --with-coverage
+after_script:
+  - coverage xml
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT
