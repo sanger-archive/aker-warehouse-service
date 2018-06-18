@@ -3,7 +3,7 @@ Class to represent all config for the events_consumer
 """
 
 from collections import namedtuple
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
 
 class Config(object):
 
