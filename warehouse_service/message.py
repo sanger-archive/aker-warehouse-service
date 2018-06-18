@@ -5,6 +5,7 @@ import json
 import dateutil.parser
 from collections import namedtuple
 
+
 class Message(object):
 
     Role = namedtuple('Role', 'role_type subject_type subject_friendly_name subject_uuid')
@@ -85,6 +86,8 @@ class Message(object):
         return cls(**data)
 
     def __repr__(self):
-        return 'Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={!r}, user_identifier={!r}, roles={}, metadata={})'.format(
-            self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier, self.roles, self.metadata
+        return ('Message(event_type={!r}, lims_id={!r}, uuid={!r}, timestamp={!r},'
+                'user_identifier={!r}, roles={}, metadata={})').format(
+            self.event_type, self.lims_id, self.uuid, self.timestamp, self.user_identifier,
+            self.roles, self.metadata
         )
