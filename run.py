@@ -20,8 +20,10 @@ def on_message(channel, method_frame, header_frame, body, db, env, config):
     try:
         print(method_frame.routing_key)
         print(method_frame.delivery_tag)
-        print(body)
-        message = Message.from_json(body)
+        # We need to decode the body to be able to read the JSON
+        decoded_body = body.decode('utf-8')
+        print(decoded_body)
+        message = Message.from_json(decoded_body)
         print(message)
         process_message(db, message)
         channel.basic_ack(delivery_tag=method_frame.delivery_tag)
