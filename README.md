@@ -1,6 +1,8 @@
-Aker Events Consumer
+Aker - Warehouse service
 ===
-[![Build Status](https://travis-ci.org/sanger/aker-events-consumer.svg?branch=devel)](https://travis-ci.org/sanger/aker-events-consumer)
+[![Build Status](https://travis-ci.org/sanger/aker-warehouse-service.svg?branch=devel)](https://travis-ci.org/sanger/aker-warehouse-service)
+[![Maintainability](https://api.codeclimate.com/v1/badges/a2c4e0efc47dee2da322/maintainability)](https://codeclimate.com/github/sanger/aker-warehouse-service/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/a2c4e0efc47dee2da322/test_coverage)](https://codeclimate.com/github/sanger/aker-warehouse-service/test_coverage)
 
 Installation
 ---
