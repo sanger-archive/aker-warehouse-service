@@ -2,26 +2,29 @@ from parameterized import parameterized
 import unittest
 import mock
 import json
-from itertools import izip
+
 from uuid import uuid4
 from datetime import datetime
 import dateutil.parser
 
-from events_consumer import Message
-from events_consumer import Config
-from events_consumer import db_connect
-from events_consumer.process import *
+from warehouse_service import Message
+from warehouse_service import Config
+from warehouse_service import db_connect
+from warehouse_service.process import *
+
 
 def new_uuid():
     return str(uuid4())
 
+
 SOME_TIMESTAMP = dateutil.parser.parse('2017-06-06T12:13:58.509575')
+
 
 class ProcessTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        config = Config('test.txt')
+        config = Config('config/test.cfg')
         db = db_connect(config)
         with db:
             with db.cursor() as cursor:
@@ -99,7 +102,7 @@ class ProcessTests(unittest.TestCase):
     def test_create_metadata(self):
         event_id = create_event(self.cursor, 'aker', new_uuid(), self.event_type_id,
                                 SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
-        metadata = { "weapon": "banana gun", "mood": ["confused", "angry"] }
+        metadata = {"weapon": "banana gun", "mood": ["confused", "angry"]}
 
         create_metadata(self.cursor, event_id, metadata)
 
@@ -120,7 +123,7 @@ class ProcessTests(unittest.TestCase):
                                 SOME_TIMESTAMP, 'dr6@sanger.ac.uk')
         long_key = 'weapon'+(300*'x')
         long_value = 'confused'+(300*'z')
-        metadata = { long_key: "banana gun", "mood": [long_value, "angry"] }
+        metadata = {long_key: "banana gun", "mood": [long_value, "angry"]}
 
         create_metadata(self.cursor, event_id, metadata)
 
@@ -211,12 +214,12 @@ class ProcessTests(unittest.TestCase):
             uuid=new_uuid(),
             timestamp=SOME_TIMESTAMP,
             user_identifier='dr6@sanger.ac.uk',
-            roles = [
+            roles=[
                     Message.Role('work_order', 'work_order', 'Work Order 11', new_uuid()),
                     Message.Role('project', 'project', 'Viruses', new_uuid()),
                     Message.Role('product', 'product', 'Ham sandwich', new_uuid()),
             ],
-            metadata = {
+            metadata={
                 'comment': 'Do my work',
                 'colour': ['red', 'green', 'blue'],
             },
@@ -249,7 +252,7 @@ class ProcessTests(unittest.TestCase):
         )
         self.assertEqual(len(results), len(message.roles))
         results.sort()
-        for actual, expected in izip(results, sorted(message.roles)):
+        for actual, expected in zip(results, sorted(message.roles)):
             self.assertEqual(actual, tuple(expected))
 
         # Check the metadata
@@ -267,9 +270,9 @@ class ProcessTests(unittest.TestCase):
 
     @parameterized.expand([[True], [False]])
     def test_process_message(self, success):
-        data = 'TESTDATA_%s'%datetime.now().isoformat()
+        data = 'TESTDATA_%s' % datetime.now().isoformat()
         replacement = mock_save_message_success if success else mock_save_message_failure
-        with mock.patch('events_consumer.process.save_message', new=replacement):
+        with mock.patch('warehouse_service.process.save_message', new=replacement):
             if success:
                 process_message(self.db, data)
             else:
@@ -285,10 +288,11 @@ class ProcessTests(unittest.TestCase):
                 # The row data should have been rolled back
                 self.assertFalse(results)
 
+
 def mock_save_message_success(cursor, data):
     cursor.execute('INSERT INTO subject_types (name) VALUES (%s)', (data,))
+
 
 def mock_save_message_failure(cursor, data):
     cursor.execute('INSERT INTO subject_types (name) VALUES (%s)', (data,))
     raise ValueError('Something went wrong')
-

@@ -1,9 +1,10 @@
 """
-Class to represent all config for the events_consumer
+Class to represent all config for the Warehouse service
 """
 
 from collections import namedtuple
-from ConfigParser import ConfigParser
+from configparser import ConfigParser
+
 
 class Config(object):
 
